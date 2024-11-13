@@ -34,60 +34,45 @@ public:
     SimpleVector() noexcept = default;
 
     // Создаёт вектор из size элементов, инициализированных значением по умолчанию
-    explicit SimpleVector(size_t size){
+    explicit SimpleVector(size_t size) :size_(size), capacity_(size){
         ArrayPtr<Type> p_vec(size);
         p_data_.swap(p_vec);
-        size_ = size;
-        capacity_ = size;
         std::fill(this->begin(), this->end(), Type());
     }
 
-    explicit SimpleVector(ReserveProxyObj reserveProxyObj){
-        ArrayPtr<Type> p_vec(reserveProxyObj.GetCapacity());
-        p_data_.swap(p_vec);
+    explicit SimpleVector(ReserveProxyObj reserveProxyObj) :SimpleVector(reserveProxyObj.GetCapacity()){
         size_ = 0;
-        capacity_ = reserveProxyObj.GetCapacity();
     }
 
     // Создаёт вектор из size элементов, инициализированных значением value
-    SimpleVector(size_t size, const Type &value){
-        ArrayPtr<Type> p_vec(size);
-        p_data_.swap(p_vec);
-        size_ = size;
-        capacity_ = size;
+    SimpleVector(size_t size, const Type &value) :SimpleVector(size){
         std::fill(this->begin(), this->end(), value);
     }
 
     // Создаёт вектор из std::initializer_list
-    SimpleVector(std::initializer_list<Type> init){
-        ArrayPtr<Type> p_vec(init.size());
-        p_data_.swap(p_vec);
-        size_ = init.size();
-        capacity_ = init.size();
+    SimpleVector(std::initializer_list<Type> init) : SimpleVector(init.size()){
         std::copy(std::make_move_iterator(init.begin()), std::make_move_iterator(init.end()), p_data_.Get());
-    }
-
-    SimpleVector(SimpleVector &&other){
-        this->p_data_ = std::move(other.p_data_);
-        this->size_ = other.size_;
-        this->capacity_ = other.capacity_;
-        other.capacity_ = 0;
-        other.size_ = 0;
-    }
-
-    SimpleVector &operator=(SimpleVector &&other){
-        this->p_data_ = std::move(other.p_data_);
-        this->size_ = other.size_;
-        this->capacity_ = other.capacity_;
-        other.capacity_ = 0;
-        other.size_ = 0;
-        return *this;
     }
 
     SimpleVector(const SimpleVector &other){
         SimpleVector<Type> temp_copy(other.size_);
         std::copy(other.begin(), other.end(), temp_copy.begin());
         this->swap(temp_copy);
+    }
+
+    SimpleVector(SimpleVector &&other) : size_(other.size_), capacity_(other.capacity_),
+                                         p_data_(std::move(other.p_data_)){
+        other.capacity_ = 0;
+        other.size_ = 0;
+    }
+
+    SimpleVector &operator=(SimpleVector &&other){
+        if (&other == this){
+            return *this;
+        }
+        SimpleVector temp(other);
+        this->swap(other);
+        return *this;
     }
 
     SimpleVector &operator=(const SimpleVector &rhs){
@@ -112,14 +97,16 @@ public:
     // Если перед вставкой значения вектор был заполнен полностью,
     // вместимость вектора должна увеличиться вдвое, а для вектора вместимостью 0 стать равной 1
     Iterator Insert(ConstIterator pos, Type value){
+        assert(pos >= this->begin() && pos <= this->end());
         if (size_ >= capacity_){
-            ArrayPtr<Type> p_temp_new_vec(std::max(size_ * 2, static_cast<size_t>(1)));
+            capacity_ = std::max(size_ * 2, static_cast<size_t>(1));
+            ArrayPtr<Type> p_temp_new_vec(capacity_);
             auto insert_iter = std::copy(std::make_move_iterator(this->begin()),
                                          std::make_move_iterator(const_cast<Iterator>(pos)), p_temp_new_vec.Get());
             *insert_iter = std::move(value);
             std::copy(std::make_move_iterator(const_cast<Iterator>(pos)), std::make_move_iterator(this->end()),
                       std::next(insert_iter));
-            capacity_ = std::max(size_ * 2, static_cast<size_t>(1));
+
             p_data_.swap(p_temp_new_vec);
             ++size_;
             return static_cast<Iterator>(insert_iter);
@@ -133,8 +120,14 @@ public:
 
     }
 
+    // Сообщает, пустой ли массив
+    bool IsEmpty() const noexcept{
+        return size_ == 0;
+    }
+
     // "Удаляет" последний элемент вектора. Вектор не должен быть пустым
     void PopBack() noexcept{
+        assert(this->IsEmpty());
         if (size_ > 0){
             --size_;
         }
@@ -142,6 +135,7 @@ public:
 
     // Удаляет элемент вектора в указанной позиции
     Iterator Erase(ConstIterator pos){
+        assert(pos >= this->begin() && pos < this->end());
         std::copy(std::make_move_iterator(std::next(const_cast<Iterator>(pos))), std::make_move_iterator(this->end()),
                   Iterator(pos));
         --size_;
@@ -163,11 +157,6 @@ public:
     // Возвращает вместимость массива
     size_t GetCapacity() const noexcept{
         return capacity_;
-    }
-
-    // Сообщает, пустой ли массив
-    bool IsEmpty() const noexcept{
-        return size_ == 0;
     }
 
     // Возвращает ссылку на элемент с индексом index
@@ -219,7 +208,8 @@ public:
     void Reserve(size_t new_capacity){
         if (new_capacity > capacity_){
             ArrayPtr<Type> p_temp_new_vec(new_capacity);
-            std::copy(std::make_move_iterator(this->begin()), std::make_move_iterator(this->end()), p_temp_new_vec.Get());
+            std::copy(std::make_move_iterator(this->begin()), std::make_move_iterator(this->end()),
+                      p_temp_new_vec.Get());
             p_data_.swap(p_temp_new_vec);
             capacity_ = new_capacity;
         }
