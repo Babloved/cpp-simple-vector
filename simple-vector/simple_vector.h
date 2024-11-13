@@ -33,24 +33,22 @@ public:
     using ConstIterator = const Type *;
     SimpleVector() noexcept = default;
 
-    // Создаёт вектор из size элементов, инициализированных значением по умолчанию
-    explicit SimpleVector(size_t size) :size_(size), capacity_(size){
-        ArrayPtr<Type> p_vec(size);
-        p_data_.swap(p_vec);
-        std::fill(this->begin(), this->end(), Type());
+    SimpleVector(size_t size, const Type &value) :size_(size), capacity_(size),p_data_(size){
+        std::fill(this->begin(), this->end(), value);
     }
+
+    // Создаёт вектор из size элементов, инициализированных значением по умолчанию
+    explicit SimpleVector(size_t size) :SimpleVector(size,Type()){}
 
     explicit SimpleVector(ReserveProxyObj reserveProxyObj) :SimpleVector(reserveProxyObj.GetCapacity()){
         size_ = 0;
     }
 
     // Создаёт вектор из size элементов, инициализированных значением value
-    SimpleVector(size_t size, const Type &value) :SimpleVector(size){
-        std::fill(this->begin(), this->end(), value);
-    }
+
 
     // Создаёт вектор из std::initializer_list
-    SimpleVector(std::initializer_list<Type> init) : SimpleVector(init.size()){
+    SimpleVector(std::initializer_list<Type> init) : size_(init.size(),capacity_(init.size()),p_data_(init.size())){
         std::copy(std::make_move_iterator(init.begin()), std::make_move_iterator(init.end()), p_data_.Get());
     }
 
@@ -76,6 +74,9 @@ public:
     }
 
     SimpleVector &operator=(const SimpleVector &rhs){
+        if (&rhs == this){
+            return *this;
+        }
         SimpleVector<Type> temp_copy(rhs);
         this->swap(temp_copy);
         return *this;
@@ -128,9 +129,7 @@ public:
     // "Удаляет" последний элемент вектора. Вектор не должен быть пустым
     void PopBack() noexcept{
         assert(this->IsEmpty());
-        if (size_ > 0){
-            --size_;
-        }
+        --size_;
     }
 
     // Удаляет элемент вектора в указанной позиции
