@@ -23,7 +23,7 @@ private:
 };
 
 ReserveProxyObj Reserve(size_t capacity_to_reserve){
-    return ReserveProxyObj(capacity_to_reserve);
+    return {capacity_to_reserve};
 };
 
 template<typename Type>
@@ -58,7 +58,7 @@ public:
         this->swap(temp_copy);
     }
 
-    SimpleVector(SimpleVector &&other) : size_(other.size_), capacity_(other.capacity_),
+    SimpleVector(SimpleVector &&other)  noexcept : size_(other.size_), capacity_(other.capacity_),
                                          p_data_(std::move(other.p_data_)){
         other.capacity_ = 0;
         other.size_ = 0;
