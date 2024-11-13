@@ -64,7 +64,7 @@ public:
         other.size_ = 0;
     }
 
-    SimpleVector &operator=(SimpleVector &&other){
+    SimpleVector &operator=(SimpleVector &&other) noexcept {
         if (&other == this){
             return *this;
         }
@@ -122,7 +122,7 @@ public:
     }
 
     // Сообщает, пустой ли массив
-    bool IsEmpty() const noexcept{
+    [[nodiscard]] bool IsEmpty() const noexcept{
         return size_ == 0;
     }
 
@@ -149,12 +149,12 @@ public:
     }
 
     // Возвращает количество элементов в массиве
-    size_t GetSize() const noexcept{
+    [[nodiscard]] size_t GetSize() const noexcept{
         return size_;
     }
 
     // Возвращает вместимость массива
-    size_t GetCapacity() const noexcept{
+    [[nodiscard]] size_t GetCapacity() const noexcept{
         return capacity_;
     }
 
